@@ -1,5 +1,7 @@
 //==============================================================================
-#include "MainRenderer.h"
+#include "Renderer.h"
+#include "Camera.h"
+#include <glm-master/glm/glm.hpp>
 #include <glm-master/glm/gtc/type_ptr.hpp>
 //==============================================================================
 struct GL_Vertex_Attrib
@@ -207,8 +209,9 @@ void RenderObject::loadShaderProg(const juce::String v_shader_name, const juce::
 }
 //==============================================================================
 /* class MainRenderer */
-MainRenderer::MainRenderer(juce::OpenGLContext& context) : gl_context(context)
+Renderer::Renderer(juce::OpenGLContext& context) : gl_context(context)
 {
+	main_camera = std::make_unique<Camera>();
 	mesh = std::make_unique<GlobalMesh>(10, 0);
 	setWantsKeyboardFocus(true);
 
@@ -217,135 +220,58 @@ MainRenderer::MainRenderer(juce::OpenGLContext& context) : gl_context(context)
 	debug_info.setReadOnly(true);
 	debug_info.setAlpha(0.6);
 
-	DBG("[INFO] MainRenderer constructed");
+	DBG("[INFO] Renderer constructed");
 }
-MainRenderer::~MainRenderer()
+Renderer::~Renderer()
 {
 }
-void MainRenderer::newOpenGLContextCreated()
+void Renderer::newOpenGLContextCreated()
 {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	mesh.get()->initialise();
 }
-void MainRenderer::renderOpenGL()
+void Renderer::renderOpenGL()
 {
+	GLdouble current_time = juce::Time::getMillisecondCounter() * 0.001;
+	GLdouble dt = (current_time - timer);
+	timer = current_time;
+
+	if (dt > 0.1) dt = 0.1;
+	if (main_camera.get() != nullptr) main_camera.get()->update(dt);
+
 	glClearColor(0.2f, 0.2f, 0.2f, 0.2f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	global_VP = projection_mat * view_mat;
 
-	if (mesh != nullptr) mesh.get()->render(global_VP, camera_pos);
+	if (mesh != nullptr) mesh.get()->render(
+		main_camera.get()->getGlobalVP(), main_camera.get()->getCameraPos());
 }
-void MainRenderer::openGLContextClosing()
+void Renderer::openGLContextClosing()
 {
 }
-void MainRenderer::paint(juce::Graphics& g)
+void Renderer::paint(juce::Graphics& g)
 {
 }
-void MainRenderer::resized()
+void Renderer::resized()
 {
-	sensitivity_x = juce::MathConstants<GLfloat>::pi / getWidth();
-	sensitivity_y = juce::MathConstants<GLfloat>::pi / getHeight();
-	update_Pmat();
-
+	if (main_camera == nullptr)
+	{
+		DBG("[ERROR] Bad initialization for main_camera");
+		jassertfalse;
+	}
+	main_camera->processWindowResize(getLocalBounds());
 	debug_info.setBoundsRelative(0.0, 0.0, 0.4, 0.3);
 }
-bool MainRenderer::keyPressed(const juce::KeyPress& key)
-{
-	float step = 0.2f;
-
-	if		(key.getKeyCode() == 'W')
-	{
-		camera_pos += camera_f.v * step;
-	}
-	else if (key.getKeyCode() == 'S')
-	{
-		camera_pos -= camera_f.v * step;
-	}
-	else if (key.getKeyCode() == 'A')
-	{
-		camera_pos -= camera_r.v * step;
-	}
-	else if (key.getKeyCode() == 'D')
-	{
-		camera_pos += camera_r.v * step;
-	}
-	else if (key.getKeyCode() == 'Q')
-	{
-		camera_pos.z -= step;
-	}
-	else if (key.getKeyCode() == 'E')
-	{
-		camera_pos.z += step;
-	}
-	else if (key.getKeyCode() == '-') fov *= 1.05;
-	else if (key.getKeyCode() == '=') fov /= 1.05;
-
-	/* Make graph updated */
-	update_Vmat();
-	update_Pmat();
-	repaint();
-	gl_context.triggerRepaint();
-	return true;
-}
-void MainRenderer::mouseDown(const juce::MouseEvent& event)
+void Renderer::mouseDown(const juce::MouseEvent& event)
 {
 	grabKeyboardFocus();
-	last_mouse_pos = event.getMouseDownPosition();
+	main_camera->setLastMousePos(event.getPosition());
 }
-void MainRenderer::mouseDrag(const juce::MouseEvent& event)
+void Renderer::mouseDrag(const juce::MouseEvent& event)
 {
-	auto current_pos = event.getPosition();
-	GLfloat delta_x = current_pos.x - last_mouse_pos.x;
-	GLfloat delta_y = current_pos.y - last_mouse_pos.y;
-	last_mouse_pos = current_pos;
-
-	float lr_angle = -delta_x * sensitivity_x;
-	float ud_angle = -delta_y * sensitivity_y;
-
-	camera_rotation = Quaternion::gen_rotater(lr_angle, glm::vec3{ 0,0,1 }) * camera_rotation;
-	camera_rotation = camera_rotation * Quaternion::gen_rotater(ud_angle, glm::vec3{ 1,0,0 });
-	Quaternion::normalize(camera_rotation);
-
-	Quaternion inv_q{ camera_rotation.get_conjugate() };
-	camera_r = (camera_rotation * Quaternion{ 0.0, glm::vec3{1,0,0} } * inv_q);
-	camera_f = (camera_rotation * Quaternion{ 0.0, glm::vec3{0,1,0} } * inv_q);
-	camera_u = (camera_rotation * Quaternion{ 0.0, glm::vec3{0,0,1} } * inv_q);
-	update_Vmat();
-	repaint();
+	main_camera.get()->processMouseMove(event);
 	gl_context.triggerRepaint();
-}
-void MainRenderer::update_Vmat()
-{
-	glm::mat4 rotation_mat = glm::mat4(
-		glm::vec4(camera_r.v.x, camera_u.v.x, -camera_f.v.x, 0.0f),
-		glm::vec4(camera_r.v.y, camera_u.v.y, -camera_f.v.y, 0.0f),
-		glm::vec4(camera_r.v.z, camera_u.v.z, -camera_f.v.z, 0.0f),
-		glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)                          
-	);
-
-	glm::mat4 traslation_mat = glm::mat4(
-		glm::vec4(1, 0, 0, 0),
-		glm::vec4(0, 1, 0, 0),
-		glm::vec4(0, 0, 1, 0),
-		glm::vec4(-camera_pos.x, -camera_pos.y, -camera_pos.z, 1)
-	);
-	view_mat = rotation_mat * traslation_mat;
-
-	std::stringstream text;
-	text << "Camera R " << camera_r << "\n";
-	text << "Camera F " << camera_f << "\n";
-	text << "Camera U " << camera_u;
-
-	juce::MessageManagerLock mmLock;
-	debug_info.setText(text.str());
-
-}
-void MainRenderer::update_Pmat()
-{
-	aspect = ((float)getWidth() / (float)getHeight());
-	projection_mat = glm::perspective(fov, aspect, dnear, dfar);
 }
 //==============================================================================
 /* class GlobalMesh */

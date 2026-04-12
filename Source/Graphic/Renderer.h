@@ -6,8 +6,10 @@
 #include <unordered_map>
 #include <JuceHeader.h>
 #include <glm-master/glm/glm.hpp>
-#include "../Math/Quaternion.h"
 using namespace juce::gl;
+//==============================================================================
+/* Forward declarations */
+class Camera;
 //==============================================================================
 /* Simple struct for fill in OpenGL vertex attributes */
 struct GL_Vertex_Attrib;
@@ -71,12 +73,12 @@ private:
 	GLfloat cell_size = 1.0f;
 };
 /* A renderer that organizes different RenderObjects */
-class MainRenderer : public juce::OpenGLRenderer, public juce::Component
+class Renderer : public juce::OpenGLRenderer, public juce::Component
 {
 public:
 	//==============================================================================
-	MainRenderer(juce::OpenGLContext& context);
-	~MainRenderer() override;
+	Renderer(juce::OpenGLContext& context);
+	~Renderer() override;
 
 	/* JUCE OpenGL */
 	void newOpenGLContextCreated() override;
@@ -86,38 +88,17 @@ public:
 	/* JUCE Component */
 	void paint(juce::Graphics& g) override;
 	void resized() override;
-	bool keyPressed(const juce::KeyPress& key) override;
 	void mouseDown(const juce::MouseEvent& event) override;
 	void mouseDrag(const juce::MouseEvent& event) override;
 private:
 	//==============================================================================
-	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainRenderer);
+	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Renderer);
 	juce::OpenGLContext& gl_context;
 	juce::TextEditor debug_info;
+	GLdouble timer;
 
-	/* Camera properties */
-	GLfloat fov = juce::degreesToRadians(45.0);
-	GLfloat dnear = 0.01, dfar = 1000.0;
-	GLfloat aspect = 16.0 / 9.0;
-
-	/* Global coordinate params */
-	glm::vec3 camera_pos{ 0.0, -5.0, 2.0 };
-	Quaternion camera_r{ 0.0, 1.0,0.0,0.0 };
-	Quaternion camera_f{ 0.0, 0.0,1.0,0.0 };
-	Quaternion camera_u{ 0.0, 0.0,0.0,1.0 };
-	Quaternion camera_rotation{ 1.0, 0.0,0.0,0.0 };
-
-	/* Global transform matrices */
-	glm::mat4 view_mat;
-	glm::mat4 projection_mat;
-	glm::mat4 global_VP;
-	void update_Vmat();
-	void update_Pmat();
-
-	/* Mouse control  */
-	GLfloat sensitivity_x;
-	GLfloat sensitivity_y;
-	juce::Point<GLint> last_mouse_pos{ 0,0 };
+	/* Main camera */
+	std::unique_ptr<Camera> main_camera;
 
 	/* Independent objects to render */
 	std::unique_ptr<GlobalMesh> mesh;

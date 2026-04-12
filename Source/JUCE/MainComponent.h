@@ -1,6 +1,6 @@
 #pragma once
 #include <JuceHeader.h>
-#include "../Graphic/MainRenderer.h"
+#include "../Graphic/Renderer.h"
 //==============================================================================
 /*
 	This component lives inside our window, and this is where you should put all
@@ -24,6 +24,6 @@ public:
 private:
 	//==============================================================================
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent);
-	MainRenderer main_renderer;
+	Renderer main_renderer;
 	//==============================================================================
 };

@@ -15,13 +15,14 @@
         <FILE id="UOQ1IR" name="MainComponent.h" compile="0" resource="0" file="Source/JUCE/MainComponent.h"/>
       </GROUP>
       <GROUP id="{7DD22AA3-9DDF-966C-17C5-32DDEC8C48A4}" name="Graphic">
+        <FILE id="dMVsNh" name="Renderer.cpp" compile="1" resource="0" file="Source/Graphic/Renderer.cpp"/>
+        <FILE id="RAN75e" name="Renderer.h" compile="0" resource="0" file="Source/Graphic/Renderer.h"/>
         <GROUP id="{0E9E52F7-1B17-1C28-DCB5-CBE17CF9337A}" name="Shaders">
           <FILE id="KtA4th" name="mesh.frag" compile="0" resource="1" file="Source/Graphic/Shaders/mesh.frag"/>
           <FILE id="dajRLW" name="mesh.vert" compile="0" resource="1" file="Source/Graphic/Shaders/mesh.vert"/>
         </GROUP>
-        <FILE id="hOoBLR" name="MainRenderer.cpp" compile="1" resource="0"
-              file="Source/Graphic/MainRenderer.cpp"/>
-        <FILE id="tk8Lse" name="MainRenderer.h" compile="0" resource="0" file="Source/Graphic/MainRenderer.h"/>
+        <FILE id="lWfJSX" name="Camera.cpp" compile="1" resource="0" file="Source/Graphic/Camera.cpp"/>
+        <FILE id="AJhun2" name="Camera.h" compile="0" resource="0" file="Source/Graphic/Camera.h"/>
       </GROUP>
     </GROUP>
   </MAINGROUP>
