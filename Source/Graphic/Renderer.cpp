@@ -260,18 +260,13 @@ void Renderer::resized()
 		DBG("[ERROR] Bad initialization for main_camera");
 		jassertfalse;
 	}
-	main_camera->processWindowResize(getLocalBounds());
+	main_camera->setLastMousePos(localPointToGlobal(getLocalBounds().getCentre()));
+	main_camera->onWindowResize(getLocalBounds());
 	debug_info.setBoundsRelative(0.0, 0.0, 0.4, 0.3);
 }
 void Renderer::mouseDown(const juce::MouseEvent& event)
 {
 	grabKeyboardFocus();
-	main_camera->setLastMousePos(event.getPosition());
-}
-void Renderer::mouseDrag(const juce::MouseEvent& event)
-{
-	main_camera.get()->processMouseMove(event);
-	gl_context.triggerRepaint();
 }
 //==============================================================================
 /* class GlobalMesh */

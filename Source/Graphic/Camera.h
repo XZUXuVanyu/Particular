@@ -13,9 +13,7 @@ public:
 	~Camera() = default;
 
 	void update(GLdouble dt);
-	void processMouseMove(const juce::MouseEvent& event);
-	void processKeyPress(const juce::KeyPress& key);
-	void processWindowResize(const juce::Rectangle<GLint> new_window_size);
+	void onWindowResize(const juce::Rectangle<GLint> new_window_size);
 
 	glm::mat4 getGlobalVP();
 	glm::vec3 getCameraPos();
@@ -34,11 +32,14 @@ private:
 	glm::vec3 camera_pos{ 0.0, -5.0, 2.0 };
 	glm::vec3 camera_velo{ 0.0, 0.0, 0.0 };
 
+	GLfloat accl_a = 10.0, friction_a = 0.95, damp_a = 0.7;
+	Quaternion camera_rotation{ 1.0, 0.0,0.0,0.0 };
+	glm::vec3 camera_velo_a{ 0.0, 0.0, 0.0 };
 
 	Quaternion camera_r{ 0.0, 1.0,0.0,0.0 };
 	Quaternion camera_f{ 0.0, 0.0,1.0,0.0 };
 	Quaternion camera_u{ 0.0, 0.0,0.0,1.0 };
-	Quaternion camera_rotation{ 1.0, 0.0,0.0,0.0 };
+	void update_RFU();
 
 	/* Global transform matrices */
 	glm::mat4 view_mat;

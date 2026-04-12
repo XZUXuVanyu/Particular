@@ -12,6 +12,8 @@ void Camera::update(GLdouble dt)
 {
 	GLfloat dt_f = (GLfloat)dt;
 	glm::vec3 target_direction{ 0.0, 0.0, 0.0 };
+	if (juce::ModifierKeys::getCurrentModifiers().isShiftDown()) accl_t = 25.0f;
+	else accl_t = 10.0f;
 	if (juce::KeyPress::isKeyCurrentlyDown('w')) target_direction += camera_f.v;
 	if (juce::KeyPress::isKeyCurrentlyDown('s')) target_direction -= camera_f.v;
 	if (juce::KeyPress::isKeyCurrentlyDown('a')) target_direction -= camera_r.v;
@@ -21,29 +23,22 @@ void Camera::update(GLdouble dt)
 	camera_velo += target_direction * accl_t * dt_f;
 	camera_velo *= pow(friction_t, (GLfloat)60.0f * damp_t * dt_f);
 	camera_pos	+= camera_velo * dt_f;
-	update_Vmat();
-}
-void Camera::processMouseMove(const juce::MouseEvent& event)
-{
-	auto current_pos = event.getPosition();
-	GLfloat delta_x = current_pos.x - last_mouse_pos.x;
-	GLfloat delta_y = current_pos.y - last_mouse_pos.y;
+
+	auto current_pos = juce::Desktop::getMousePosition();
+	if (juce::ModifierKeys::getCurrentModifiers().isLeftButtonDown())
+	{
+		camera_velo_a.x += -(current_pos.y - last_mouse_pos.y) * sensitivity_y * accl_a * dt_f;
+		camera_velo_a.z += -(current_pos.x - last_mouse_pos.x) * sensitivity_x * accl_a * dt_f;
+	}
 	last_mouse_pos = current_pos;
-
-	float lr_angle = -delta_x * sensitivity_x;
-	float ud_angle = -delta_y * sensitivity_y;
-
-	camera_rotation = Quaternion::gen_rotater(lr_angle, glm::vec3{ 0,0,1 }) * camera_rotation;
-	camera_rotation = camera_rotation * Quaternion::gen_rotater(ud_angle, glm::vec3{ 1,0,0 });
+	camera_velo_a *= pow(friction_a, (GLfloat)60.0f * damp_a * dt_f);
+	camera_rotation = Quaternion::gen_rotater(camera_velo_a.z, glm::vec3{ 0,0,1 }) * camera_rotation;
+	camera_rotation = camera_rotation * Quaternion::gen_rotater(camera_velo_a.x, glm::vec3{ 1,0,0 });
 	Quaternion::normalize(camera_rotation);
-
-	Quaternion inv_q{ camera_rotation.get_conjugate() };
-	camera_r = (camera_rotation * Quaternion{ 0.0, glm::vec3{1,0,0} } * inv_q);
-	camera_f = (camera_rotation * Quaternion{ 0.0, glm::vec3{0,1,0} } * inv_q);
-	camera_u = (camera_rotation * Quaternion{ 0.0, glm::vec3{0,0,1} } * inv_q);
+	update_RFU();
 	update_Vmat();
 }
-void Camera::processWindowResize(const juce::Rectangle<GLint> new_window_size)
+void Camera::onWindowResize(const juce::Rectangle<GLint> new_window_size)
 {
 	GLfloat pi = juce::MathConstants<GLfloat>::pi;
 	GLfloat width = new_window_size.getWidth(), height = new_window_size.getHeight();
@@ -73,6 +68,13 @@ void Camera::setViewDist(GLfloat near, GLfloat far)
 	dnear = near;
 	dfar = far;
 }
+void Camera::update_RFU()
+{
+	Quaternion inv_q{ camera_rotation.get_conjugate() };
+	camera_r = (camera_rotation * Quaternion{ 0.0, glm::vec3{1,0,0} } * inv_q);
+	camera_f = (camera_rotation * Quaternion{ 0.0, glm::vec3{0,1,0} } * inv_q);
+	camera_u = (camera_rotation * Quaternion{ 0.0, glm::vec3{0,0,1} } * inv_q);
+}
 void Camera::update_Vmat()
 {
 	glm::mat4 rotation_mat = glm::mat4(
@@ -94,3 +96,4 @@ void Camera::update_Pmat()
 {
 	projection_mat = glm::perspective(glm::radians(fov), aspect_ratio, dnear, dfar);
 }
+//==============================================================================
