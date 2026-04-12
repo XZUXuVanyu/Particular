@@ -1,0 +1,10 @@
+Builds/
+JuceLibraryCode/
+Source/third_party/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+bin/
+obj/

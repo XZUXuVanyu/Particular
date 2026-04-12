@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="KjZrYw" name="Particular" projectType="guiapp" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" headerPath="D:\JUCE\projects\Particular\Source\third_party&#10;D:\JUCE\projects\Particular\Source\third_party\glm-master&#10;&#10;"
+              cppLanguageStandard="20">
+  <MAINGROUP id="kPOdh2" name="Particular">
+    <GROUP id="{2ABAF8BA-6324-460E-DCB4-2040F14289B6}" name="Source">
+      <GROUP id="{A22C3654-91E5-BAB2-3F48-AE238BAE3FB8}" name="Math">
+        <FILE id="oU2rQY" name="Quaternion.h" compile="0" resource="0" file="Source/Math/Quaternion.h"/>
+      </GROUP>
+      <GROUP id="{B727A993-D6EF-9B86-65C3-FAD0C7751739}" name="JUCE">
+        <FILE id="rNWEjE" name="Main.cpp" compile="1" resource="0" file="Source/JUCE/Main.cpp"/>
+        <FILE id="Ue8BL5" name="MainComponent.cpp" compile="1" resource="0"
+              file="Source/JUCE/MainComponent.cpp"/>
+        <FILE id="UOQ1IR" name="MainComponent.h" compile="0" resource="0" file="Source/JUCE/MainComponent.h"/>
+      </GROUP>
+      <GROUP id="{7DD22AA3-9DDF-966C-17C5-32DDEC8C48A4}" name="Graphic">
+        <GROUP id="{0E9E52F7-1B17-1C28-DCB5-CBE17CF9337A}" name="Shaders">
+          <FILE id="KtA4th" name="mesh.frag" compile="0" resource="1" file="Source/Graphic/Shaders/mesh.frag"/>
+          <FILE id="dajRLW" name="mesh.vert" compile="0" resource="1" file="Source/Graphic/Shaders/mesh.vert"/>
+        </GROUP>
+        <FILE id="hOoBLR" name="MainRenderer.cpp" compile="1" resource="0"
+              file="Source/Graphic/MainRenderer.cpp"/>
+        <FILE id="tk8Lse" name="MainRenderer.h" compile="0" resource="0" file="Source/Graphic/MainRenderer.h"/>
+      </GROUP>
+    </GROUP>
+  </MAINGROUP>
+  <MODULES>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_opengl" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+  </MODULES>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
+  <EXPORTFORMATS>
+    <VS2026 targetFolder="Builds/VisualStudio2026">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="Particular"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="Particular"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_data_structures" path="../../modules"/>
+        <MODULEPATH id="juce_opengl" path="../../modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../modules"/>
+        <MODULEPATH id="juce_core" path="../../modules"/>
+        <MODULEPATH id="juce_events" path="../../modules"/>
+        <MODULEPATH id="juce_graphics" path="../../modules"/>
+      </MODULEPATHS>
+    </VS2026>
+  </EXPORTFORMATS>
+</JUCERPROJECT>
