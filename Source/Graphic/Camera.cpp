@@ -8,29 +8,28 @@ Camera::Camera(GLfloat fov, GLfloat aspect_ratio) : fov(fov), aspect_ratio(aspec
 	update_Pmat();
 	update_Vmat();
 }
-void Camera::update(GLdouble dt)
+void Camera::update(GLdouble dt, juce::Point<GLint> new_mouse_pos)
 {
 	GLfloat dt_f = (GLfloat)dt;
 	glm::vec3 target_direction{ 0.0, 0.0, 0.0 };
 	if (juce::ModifierKeys::getCurrentModifiers().isShiftDown()) accl_t = 25.0f;
 	else accl_t = 10.0f;
-	if (juce::KeyPress::isKeyCurrentlyDown('w')) target_direction += camera_f.v;
-	if (juce::KeyPress::isKeyCurrentlyDown('s')) target_direction -= camera_f.v;
-	if (juce::KeyPress::isKeyCurrentlyDown('a')) target_direction -= camera_r.v;
-	if (juce::KeyPress::isKeyCurrentlyDown('d')) target_direction += camera_r.v;
+	if (juce::KeyPress::isKeyCurrentlyDown('W')) target_direction += camera_f.v;
+	if (juce::KeyPress::isKeyCurrentlyDown('S')) target_direction -= camera_f.v;
+	if (juce::KeyPress::isKeyCurrentlyDown('A')) target_direction -= camera_r.v;
+	if (juce::KeyPress::isKeyCurrentlyDown('D')) target_direction += camera_r.v;
 	if (juce::KeyPress::isKeyCurrentlyDown(juce::KeyPress::spaceKey)) target_direction += camera_u.v;
 	
 	camera_velo += target_direction * accl_t * dt_f;
 	camera_velo *= pow(friction_t, (GLfloat)60.0f * damp_t * dt_f);
 	camera_pos	+= camera_velo * dt_f;
 
-	auto current_pos = juce::Desktop::getMousePosition();
 	if (juce::ModifierKeys::getCurrentModifiers().isLeftButtonDown())
 	{
-		camera_velo_a.x += -(current_pos.y - last_mouse_pos.y) * sensitivity_y * accl_a * dt_f;
-		camera_velo_a.z += -(current_pos.x - last_mouse_pos.x) * sensitivity_x * accl_a * dt_f;
+		camera_velo_a.x += -(new_mouse_pos.y - mouse_pos.y) * sensitivity_y * accl_a * dt_f;
+		camera_velo_a.z += -(new_mouse_pos.x - mouse_pos.x) * sensitivity_x * accl_a * dt_f;
 	}
-	last_mouse_pos = current_pos;
+	mouse_pos = new_mouse_pos;
 	camera_velo_a *= pow(friction_a, (GLfloat)60.0f * damp_a * dt_f);
 	camera_rotation = Quaternion::gen_rotater(camera_velo_a.z, glm::vec3{ 0,0,1 }) * camera_rotation;
 	camera_rotation = camera_rotation * Quaternion::gen_rotater(camera_velo_a.x, glm::vec3{ 1,0,0 });
@@ -41,14 +40,15 @@ void Camera::update(GLdouble dt)
 void Camera::onWindowResize(const juce::Rectangle<GLint> new_window_size)
 {
 	GLfloat pi = juce::MathConstants<GLfloat>::pi;
-	GLfloat width = new_window_size.getWidth(), height = new_window_size.getHeight();
-	if (height == 0)
+	if (new_window_size.getWidth() == 0 || new_window_size.getHeight() == 0)
 	{
 		DBG("[INFO] Window size = 0, may caused by an error");
 		return;
 	}
-	aspect_ratio = width / height;
-	sensitivity_x = pi / width, sensitivity_y = pi / height;
+	window_size = new_window_size;
+	aspect_ratio = (GLfloat)window_size.getWidth() / (GLfloat)window_size.getHeight();
+	sensitivity_x = pi / (GLfloat)window_size.getWidth();
+	sensitivity_y = pi / (GLfloat)window_size.getHeight();
 	update_Pmat();
 }
 glm::mat4 Camera::getGlobalVP()
@@ -59,9 +59,25 @@ glm::vec3 Camera::getCameraPos()
 {
 	return camera_pos;
 }
-void Camera::setLastMousePos(juce::Point<GLint> pos)
+juce::Point<GLint> Camera::getMousePos()
 {
-	last_mouse_pos = pos;
+	return mouse_pos;
+}
+juce::Point<GLfloat> Camera::getMouseNDCPos()
+{
+	GLfloat w = (GLfloat)window_size.getWidth();
+	GLfloat h = (GLfloat)window_size.getHeight();
+
+	if (w <= 0.0f || h <= 0.0f) return { 0.0f, 0.0f };
+
+	GLfloat nx = (2.0f * (GLfloat)mouse_pos.x / w) - 1.0f;
+	GLfloat ny = 1.0f - (2.0f * (GLfloat)mouse_pos.y / h);
+
+	return { nx, ny };
+}
+juce::Rectangle<GLint> Camera::getWindowSize()
+{
+	return window_size;
 }
 void Camera::setViewDist(GLfloat near, GLfloat far)
 {

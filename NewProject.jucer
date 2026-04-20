@@ -15,6 +15,10 @@
         <FILE id="UOQ1IR" name="MainComponent.h" compile="0" resource="0" file="Source/JUCE/MainComponent.h"/>
       </GROUP>
       <GROUP id="{7DD22AA3-9DDF-966C-17C5-32DDEC8C48A4}" name="Graphic">
+        <GROUP id="{A147CDBE-D155-B59A-0C56-17C498138FD5}" name="Objects">
+          <FILE id="eqMME1" name="Mesh.cpp" compile="1" resource="0" file="Source/Graphic/Objects/Mesh.cpp"/>
+          <FILE id="i2AVmw" name="Mesh.h" compile="0" resource="0" file="Source/Graphic/Objects/Mesh.h"/>
+        </GROUP>
         <FILE id="dMVsNh" name="Renderer.cpp" compile="1" resource="0" file="Source/Graphic/Renderer.cpp"/>
         <FILE id="RAN75e" name="Renderer.h" compile="0" resource="0" file="Source/Graphic/Renderer.h"/>
         <GROUP id="{0E9E52F7-1B17-1C28-DCB5-CBE17CF9337A}" name="Shaders">

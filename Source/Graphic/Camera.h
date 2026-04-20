@@ -12,13 +12,17 @@ public:
 	Camera(GLfloat fov, GLfloat aspect_ratio);
 	~Camera() = default;
 
-	void update(GLdouble dt);
+	void update(GLdouble dt, juce::Point<GLint> new_mouse_pos);
 	void onWindowResize(const juce::Rectangle<GLint> new_window_size);
+
+	void setViewDist(GLfloat near, GLfloat far);
 
 	glm::mat4 getGlobalVP();
 	glm::vec3 getCameraPos();
-	void setLastMousePos(juce::Point<GLint> pos);
-	void setViewDist(GLfloat near, GLfloat far);
+	juce::Point<GLint> getMousePos();
+	juce::Point<GLfloat> getMouseNDCPos();
+	juce::Rectangle<GLint> getWindowSize();
+
 private:
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Camera);
 
@@ -50,6 +54,7 @@ private:
 	/* Mouse control  */
 	GLfloat sensitivity_x = 0.01;
 	GLfloat sensitivity_y = 0.01;
-	juce::Point<GLint> last_mouse_pos{ 0,0 };
+	juce::Point<GLint> mouse_pos{ 0,0 };
+	juce::Rectangle<GLint> window_size{ 1920, 1080 };
 };
 //==============================================================================

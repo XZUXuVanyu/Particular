@@ -13,7 +13,10 @@ struct GL_Vertex_Attrib
 	GLsizei		stride;
 	GLuint		offset;
 };
-void RenderObject::cleanup()
+Object::Object(juce::OpenGLContext& context) : gl_context(context)
+{
+}
+void Object::cleanup()
 {
 	if (render_program_id)	glDeleteProgram(render_program_id);
 	if (compute_program_id) glDeleteProgram(compute_program_id);
@@ -24,10 +27,18 @@ void RenderObject::cleanup()
 		vbo_id.clear();
 	}
 }
+void Object::setHandle(const Object_Handle& handle)
+{
+	object_handle = handle;
+}
+Object_Handle Object::getHandle() const
+{
+	return object_handle;
+}
 //==============================================================================
-/* class RenderObject */
+/* class Object */
 /* TODO: this function should be implemented later after file output reconstructing */
-juce::File RenderObject::getShaderFile(const juce::String& file_name) const
+juce::File Object::getShaderFile(const juce::String& file_name) const
 {
 	auto file = juce::File::getSpecialLocation(juce::File::currentExecutableFile);
 	for (int i = 0; i < 6; ++i)
@@ -45,8 +56,10 @@ juce::File RenderObject::getShaderFile(const juce::String& file_name) const
 	return result;
 	
 }
-GLint RenderObject::getUniformLoc(const juce::String& uniform_name, bool in_compute_shader)
+GLint Object::getUniformLoc(const juce::String& uniform_name, bool in_compute_shader)
 {
+	auto& glfunc = gl_context.extensions;
+
 	GLint	location = 0;
 	GLuint	target_prog	= in_compute_shader ? compute_program_id : render_program_id;
 	auto&	target_cache = in_compute_shader ? compute_uniform_locations : render_uniform_locations;
@@ -60,12 +73,12 @@ GLint RenderObject::getUniformLoc(const juce::String& uniform_name, bool in_comp
 	auto it = target_cache.find(uniform_name);
 	if (it != target_cache.end()) return it->second;
 
-	GLint loc = glGetUniformLocation(target_prog, uniform_name.toRawUTF8());
+	GLint loc = glfunc.glGetUniformLocation(target_prog, uniform_name.toRawUTF8());
 	target_cache[uniform_name] = loc;
 
 	return loc;
 }
-GLuint RenderObject::genComputeProg(const juce::String src) const
+GLuint Object::genComputeProg(const juce::String src) const
 {
 	if (src.isEmpty())
 	{
@@ -73,39 +86,41 @@ GLuint RenderObject::genComputeProg(const juce::String src) const
 		jassertfalse;
 		return 0;
 	}
+
+	auto& glfunc = gl_context.extensions;
+
 	GLint success = 0;
 	char msg[1024];
 
-	GLuint shader = glCreateShader(GL_COMPUTE_SHADER);
+	GLuint shader = glfunc.glCreateShader(GL_COMPUTE_SHADER);
 	const char* shader_ptr = src.toRawUTF8();
-	glShaderSource(shader, 1, &shader_ptr, nullptr);
-	glCompileShader(shader);
+	glfunc.glShaderSource(shader, 1, &shader_ptr, nullptr);
+	glfunc.glCompileShader(shader);
 
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+	glfunc.glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
 	if (!success)
 	{
-		glGetShaderInfoLog(shader, 512, NULL, msg);
+		glfunc.glGetShaderInfoLog(shader, 512, NULL, msg);
 		juce::Logger::writeToLog("Compute shader compile error:" + juce::String(msg));
 		return 0;
 	}
 
 	GLuint prog = glCreateProgram();
-	glAttachShader(prog, shader);
-	glLinkProgram(prog);
+	glfunc.glAttachShader(prog, shader);
+	glfunc.glLinkProgram(prog);
 
-	glGetProgramiv(prog, GL_LINK_STATUS, &success);
+	glfunc.glGetProgramiv(prog, GL_LINK_STATUS, &success);
 	if (!success)
 	{
-		// FIX: use 'prog' not the shader id when getting the program info log
-		glGetProgramInfoLog(prog, 1024, NULL, msg);
+		glfunc.glGetProgramInfoLog(prog, 1024, NULL, msg);
 		juce::Logger::writeToLog("[ERROR] Compute shader program link error:" + juce::String(msg));
 		jassertfalse;
 		return 0;
 	}
-	glDeleteShader(shader);
+	glfunc.glDeleteShader(shader);
 	return prog;
 }
-GLuint RenderObject::genComputeProgfromFile(const juce::String path) const
+GLuint Object::genComputeProgfromFile(const juce::String path) const
 {
 	juce::File shaderFile = path;
 	if (!shaderFile.existsAsFile())
@@ -116,63 +131,66 @@ GLuint RenderObject::genComputeProgfromFile(const juce::String path) const
 	}
 	return genComputeProg(shaderFile.loadFileAsString());
 }
-GLuint RenderObject::genRenderProg(const juce::String vsrc, const juce::String fsrc) const
+GLuint Object::genRenderProg(const juce::String vsrc, const juce::String fsrc) const
 {
 	if (vsrc.isEmpty() || fsrc.isEmpty())
 	{
 		juce::Logger::writeToLog("Source code could not be empty!");
 		return 0;
 	}
+
+	auto& glfunc = gl_context.extensions;
+
 	GLint success = 0;
 	char msg[1024];
 
-	GLuint vshader = glCreateShader(GL_VERTEX_SHADER);
+	GLuint vshader = glfunc.glCreateShader(GL_VERTEX_SHADER);
 	const char* shader_ptr = vsrc.toRawUTF8();
-	glShaderSource(vshader, 1, &shader_ptr, nullptr);
-	glCompileShader(vshader);
+	glfunc.glShaderSource(vshader, 1, &shader_ptr, nullptr);
+	glfunc.glCompileShader(vshader);
 
-	glGetShaderiv(vshader, GL_COMPILE_STATUS, &success);
+	glfunc.glGetShaderiv(vshader, GL_COMPILE_STATUS, &success);
 	if (!success)
 	{
-		glGetShaderInfoLog(vshader, 1024, NULL, msg);
+		glfunc.glGetShaderInfoLog(vshader, 1024, NULL, msg);
 		juce::Logger::writeToLog("[ERROR] Vertex shader compile error:" + juce::String(msg));
 		jassertfalse;
 		return 0;
 	}
 
-	GLuint fshader = glCreateShader(GL_FRAGMENT_SHADER);
+	GLuint fshader = glfunc.glCreateShader(GL_FRAGMENT_SHADER);
 	const char* fhader_ptr = fsrc.toRawUTF8();
-	glShaderSource(fshader, 1, &fhader_ptr, nullptr);
-	glCompileShader(fshader);
+	glfunc.glShaderSource(fshader, 1, &fhader_ptr, nullptr);
+	glfunc.glCompileShader(fshader);
 
-	glGetShaderiv(fshader, GL_COMPILE_STATUS, &success);
+	glfunc.glGetShaderiv(fshader, GL_COMPILE_STATUS, &success);
 	if (!success)
 	{
-		glGetShaderInfoLog(fshader, 1024, NULL, msg);
+		glfunc.glGetShaderInfoLog(fshader, 1024, NULL, msg);
 		DBG("[ERROR] Fragment shader compile error:" + juce::String(msg));
 		jassertfalse;
 		return 0;
 	}
 
-	GLuint prog = glCreateProgram();
-	glAttachShader(prog, vshader);
-	glAttachShader(prog, fshader);
-	glLinkProgram(prog);
+	GLuint prog = glfunc.glCreateProgram();
+	glfunc.glAttachShader(prog, vshader);
+	glfunc.glAttachShader(prog, fshader);
+	glfunc.glLinkProgram(prog);
 
-	glGetProgramiv(prog, GL_LINK_STATUS, &success);
+	glfunc.glGetProgramiv(prog, GL_LINK_STATUS, &success);
 	if (!success)
 	{
-		glGetProgramInfoLog(prog, 512, NULL, msg);
+		glfunc.glGetProgramInfoLog(prog, 512, NULL, msg);
 		juce::Logger::writeToLog("[ERROR] Render shader program link error:" + juce::String(msg));
 		jassertfalse;
 		return 0;
 	}
 
-	glDeleteShader(vshader);
-	glDeleteShader(fshader);
+	glfunc.glDeleteShader(vshader);
+	glfunc.glDeleteShader(fshader);
 	return prog;
 }
-GLuint RenderObject::genRenderProgfromFile(const juce::String vpath, const juce::String fpath) const
+GLuint Object::genRenderProgfromFile(const juce::String vpath, const juce::String fpath) const
 {
 	juce::File vshaderFile = vpath;
 	juce::File fshaderFile = fpath;
@@ -184,7 +202,7 @@ GLuint RenderObject::genRenderProgfromFile(const juce::String vpath, const juce:
 	}
 	return genRenderProg(vshaderFile.loadFileAsString(), fshaderFile.loadFileAsString());
 }
-void RenderObject::loadShaderProg(const juce::String v_shader_name, const juce::String f_shader_name,
+void Object::loadShaderProg(const juce::String v_shader_name, const juce::String f_shader_name,
 	const juce::String c_shader_name, bool with_compute_shader)
 {
 	if (with_compute_shader)
@@ -209,43 +227,43 @@ void RenderObject::loadShaderProg(const juce::String v_shader_name, const juce::
 }
 //==============================================================================
 /* class MainRenderer */
-Renderer::Renderer(juce::OpenGLContext& context) : gl_context(context)
+Renderer::Renderer(juce::OpenGLContext& context) : gl_context(context), active_slots(16), access_table(16)
 {
-	main_camera = std::make_unique<Camera>();
-	mesh = std::make_unique<GlobalMesh>(10, 0);
-	setWantsKeyboardFocus(true);
-
+	startTimer(100);
+	
 	addAndMakeVisible(debug_info);
-	debug_info.setMultiLine(true);
-	debug_info.setReadOnly(true);
-	debug_info.setAlpha(0.6);
+	debug_info.setMultiLine(true); debug_info.setReadOnly(true); debug_info.setAlpha(0.3);
 
+	main_camera = std::make_unique<Camera>();
 	DBG("[INFO] Renderer constructed");
 }
 Renderer::~Renderer()
 {
 }
+juce::OpenGLContext& Renderer::getglContext()
+{
+	return gl_context;
+}
 void Renderer::newOpenGLContextCreated()
 {
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	mesh.get()->initialise();
 }
 void Renderer::renderOpenGL()
 {
-	GLdouble current_time = juce::Time::getMillisecondCounter() * 0.001;
-	GLdouble dt = (current_time - timer);
-	timer = current_time;
+	processRequests();
+	updateTime();
 
-	if (dt > 0.1) dt = 0.1;
-	if (main_camera.get() != nullptr) main_camera.get()->update(dt);
+	if (main_camera == nullptr) return;
+	main_camera->update(dt, getMouseXYRelative());
 
-	glClearColor(0.2f, 0.2f, 0.2f, 0.2f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	if (mesh != nullptr) mesh.get()->render(
-		main_camera.get()->getGlobalVP(), main_camera.get()->getCameraPos());
+	glm::mat4 global_VP = main_camera->getGlobalVP();
+	glm::vec3 camera_pos = main_camera->getCameraPos();
+	for (GLuint idx = 0; idx < access_table.size(); idx++)
+		if (!access_table[idx].isempty)
+			if (access_table[idx].isready && access_table[idx].isvisible)
+				active_slots[idx].object->render(global_VP, camera_pos);
 }
 void Renderer::openGLContextClosing()
 {
@@ -260,48 +278,158 @@ void Renderer::resized()
 		DBG("[ERROR] Bad initialization for main_camera");
 		jassertfalse;
 	}
-	main_camera->setLastMousePos(localPointToGlobal(getLocalBounds().getCentre()));
-	main_camera->onWindowResize(getLocalBounds());
-	debug_info.setBoundsRelative(0.0, 0.0, 0.4, 0.3);
+	main_camera->onWindowResize(getScreenBounds());
+	debug_info.setBoundsRelative(0.0, 0.0, 0.5, 0.4);
 }
-void Renderer::mouseDown(const juce::MouseEvent& event)
+void Renderer::timerCallback()
 {
-	grabKeyboardFocus();
-}
-//==============================================================================
-/* class GlobalMesh */
-GlobalMesh::GlobalMesh(GLuint division, GLuint sub_division)
-{
-}
-void GlobalMesh::initialise()
-{
-	/* load mesh shader */
-	loadShaderProg("mesh.vert", "mesh.frag");
-	glUseProgram(render_program_id);
-	glUniform1f(getUniformLoc("fCell_size"), cell_size);
-}
-void GlobalMesh::render(const glm::mat4& global_VP, const glm::vec3& camera_pos)
-{
-	if (!render_program_id) initialise();
-	glUseProgram(render_program_id);
-	glBindVertexArray(vao_id);
+	juce::String wall_time_text = juce::Time::getCurrentTime().toString(false, true, true, true);
+	juce::String mouse_pos_text = juce::String(main_camera->getMouseNDCPos().x,2) 
+		+ "," + juce::String(main_camera->getMouseNDCPos().y, 2);
+	juce::String window_size_text = juce::String(main_camera->getWindowSize().getX())
+		+ "," + juce::String(main_camera->getWindowSize().getY());
+	juce::String camera_pos_text = juce::String(main_camera->getCameraPos().x,2)
+		+ "," + juce::String(main_camera->getCameraPos().y, 2)
+		+ "," + juce::String(main_camera->getCameraPos().z, 2);
 
-	glUniformMatrix4fv(getUniformLoc("mGlobal_VP"), 1, GL_FALSE, glm::value_ptr(global_VP));
-	glUniform3fv(getUniformLoc("vCamera_pos"), 1, glm::value_ptr(camera_pos));
+	juce::String slots_state;
+	slots_state << "--- Slot(0-3) States ---\n";
+	{
+		for (int i = 0; i < 4; ++i)
+		{
+			auto history = active_slots[i].history;
+			auto flags = access_table[i];
+			slots_state << "Slot " << i << ": History = " << (int)history << " [";
+			slots_state << (flags.isempty	? "E" : "U");
+			slots_state << (flags.isready	? "R" : "N");
+			slots_state << (flags.isvisible ? "V" : "H");
+			slots_state << "] ";
+			slots_state << "\n";
+		}
+	}
 
-	/* draw mode: 0 = mesh, 1 = axis */
-	glUniform1i(getUniformLoc("iDraw_mode"), 0);
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-	
-	glUniform1i(getUniformLoc("iDraw_mode"), 1);
-	glDrawArrays(GL_LINES, 0, 2);
+	juce::String debug_text;
+	debug_text << "--- System Info ---" << "\n"
+		<< "Wall Time: " << wall_time_text << "\n"
+		<< "Delta Time: " << juce::String(dt, 3) << "s" << "\n"
+		<< "Mouse Position: " << "(" << mouse_pos_text << ")" << "\n"
+		<< "Window Size : " << "(" << window_size_text << ")" << "\n"
+		<< "Camera Position: " << "(" << camera_pos_text << ")" << "\n"
+		<< slots_state;
+
+	debug_info.setText(debug_text, juce::dontSendNotification);
 }
-void GlobalMesh::cleanup()
+/* TODO: here exist an overwrap problem, though it isn't an urgent, better finds out a way to fix this */
+Object_Handle Renderer::registerObject(std::unique_ptr<Object> object, GLuint target_slot)
 {
-	RenderObject::cleanup();
+	const juce::ScopedLock open(request_lock);
+
+	active_slots[target_slot].history++;
+	GLuint current_version = active_slots[target_slot].history;
+
+	object->setHandle({ target_slot, current_version });
+	register_queue.push({ target_slot, std::move(object) });
+	return { target_slot, current_version };
 }
-GLuint GlobalMesh::getProgramID()
+/* TODO: complete the logic here */
+void Renderer::makeObjectVisible(const Object_Handle& handle)
 {
-	return render_program_id;
+	if (!isHandleValid(handle)) 
+	{
+		DBG("[ERROR] Invalid handle");
+		jassertfalse;
+		return;
+	}
+	Slot_Flags target_flag;
+	target_flag.isempty = false;
+	target_flag.isready = true;
+	target_flag.isvisible = true;
+	{
+		const juce::ScopedLock open(request_lock);
+		set_state_queue.push({ handle.index, target_flag });
+	}
+}
+void Renderer::makeObjectHidden(const Object_Handle& handle)
+{
+	if (!isHandleValid(handle))
+	{
+		DBG("[ERROR] Invalid handle");
+		jassertfalse;
+		return;
+	}
+	Slot_Flags target_flag;
+	target_flag.isempty = false;
+	target_flag.isready = true;
+	target_flag.isvisible = false;
+	{
+		const juce::ScopedLock open(request_lock);
+		set_state_queue.push({ handle.index, target_flag });
+	}
+}
+void Renderer::removeObject(const Object_Handle& handle)
+{
+	if (!isHandleValid(handle))
+	{
+		DBG("[ERROR] Invalid handle");
+		jassertfalse;
+		return;
+	}
+	{
+		const juce::ScopedLock open(request_lock);
+		active_slots[handle.index].history++;
+		remove_queue.push(handle.index);
+	}
+}
+void Renderer::updateTime()
+{
+	GLdouble current_time = juce::Time::getMillisecondCounter() * 0.001;
+	dt = (current_time - timer);
+	timer = current_time;
+
+	if (dt > 0.1) dt = 0.1;
+}
+GLboolean Renderer::isHandleValid(const Object_Handle& handle)
+{
+	const juce::ScopedLock open(request_lock);
+	if (handle.index >= active_slots.size()) 
+	{
+		DBG("[ERROR] Invalid index, array out of bound");
+		jassertfalse;
+		return GL_FALSE;
+	}
+	return (handle.history == active_slots[handle.index].history) ? GL_TRUE : GL_FALSE;
+}
+/* TODO: add more check here */
+void Renderer::processRequests()
+{
+	const juce::ScopedLock open(request_lock);
+	while (!remove_queue.empty())
+	{
+		GLuint idx = remove_queue.front();
+		access_table[idx].isempty = true;
+		access_table[idx].isready = false;
+		active_slots[idx].object.reset();
+		remove_queue.pop();
+	}
+	while (!register_queue.empty()) 
+	{
+		auto& request = register_queue.front();
+		GLuint idx = request.first;
+
+		active_slots[idx].object = std::move(request.second);
+
+		active_slots[idx].object->initialise();
+
+		access_table[idx].isempty = false;
+		access_table[idx].isready = true;
+		register_queue.pop();
+	}
+	while (!set_state_queue.empty())
+	{
+		auto& request = set_state_queue.front();
+		GLuint idx = request.first;
+		access_table[idx] = request.second;
+		set_state_queue.pop();
+	}
 }
 //==============================================================================
