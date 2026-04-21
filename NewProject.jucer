@@ -5,6 +5,7 @@
               cppLanguageStandard="20">
   <MAINGROUP id="kPOdh2" name="Particular">
     <GROUP id="{2ABAF8BA-6324-460E-DCB4-2040F14289B6}" name="Source">
+      <FILE id="faZz2r" name="Utilities.h" compile="0" resource="0" file="Source/Utilities.h"/>
       <GROUP id="{A22C3654-91E5-BAB2-3F48-AE238BAE3FB8}" name="Math">
         <FILE id="oU2rQY" name="Quaternion.h" compile="0" resource="0" file="Source/Math/Quaternion.h"/>
       </GROUP>
@@ -15,9 +16,13 @@
         <FILE id="UOQ1IR" name="MainComponent.h" compile="0" resource="0" file="Source/JUCE/MainComponent.h"/>
       </GROUP>
       <GROUP id="{7DD22AA3-9DDF-966C-17C5-32DDEC8C48A4}" name="Graphic">
+        <FILE id="nSgaNu" name="Object.cpp" compile="1" resource="0" file="Source/Graphic/Object.cpp"/>
+        <FILE id="Ypq1KL" name="Object.h" compile="0" resource="0" file="Source/Graphic/Object.h"/>
         <GROUP id="{A147CDBE-D155-B59A-0C56-17C498138FD5}" name="Objects">
-          <FILE id="eqMME1" name="Mesh.cpp" compile="1" resource="0" file="Source/Graphic/Objects/Mesh.cpp"/>
+          <FILE id="wctyT5" name="Mesh.cpp" compile="1" resource="0" file="Source/Graphic/Objects/Mesh.cpp"/>
           <FILE id="i2AVmw" name="Mesh.h" compile="0" resource="0" file="Source/Graphic/Objects/Mesh.h"/>
+          <FILE id="qfZuiZ" name="Sphere.cpp" compile="1" resource="0" file="Source/Graphic/Objects/Sphere.cpp"/>
+          <FILE id="gNY597" name="Sphere.h" compile="0" resource="0" file="Source/Graphic/Objects/Sphere.h"/>
         </GROUP>
         <FILE id="dMVsNh" name="Renderer.cpp" compile="1" resource="0" file="Source/Graphic/Renderer.cpp"/>
         <FILE id="RAN75e" name="Renderer.h" compile="0" resource="0" file="Source/Graphic/Renderer.h"/>

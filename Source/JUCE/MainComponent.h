@@ -1,11 +1,13 @@
+//==============================================================================
 #pragma once
 #include <JuceHeader.h>
+#include "../Graphic/Object.h"
 #include "../Graphic/Renderer.h"
+#include "../Graphic/Objects/Mesh.h"
 //==============================================================================
-/*
-	This component lives inside our window, and this is where you should put all
-	your controls and content.
-*/
+/* Forward Declearation */
+class Renderer;
+struct Object_Handle;
 //==============================================================================
 class MainComponent : public juce::OpenGLAppComponent
 {
