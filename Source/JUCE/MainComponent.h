@@ -3,7 +3,6 @@
 #include <JuceHeader.h>
 #include "../Graphic/Object.h"
 #include "../Graphic/Renderer.h"
-#include "../Graphic/Objects/Mesh.h"
 //==============================================================================
 /* Forward Declearation */
 class Renderer;
@@ -24,6 +23,8 @@ public:
 	void render() override;
 	bool keyPressed(const juce::KeyPress& key) override;
 	void initialise_scene();
+	void newOpenGLContextCreated() override;
+
 
 	//==============================================================================
 private:

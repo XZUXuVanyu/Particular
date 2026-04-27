@@ -14,48 +14,81 @@ struct GL_Vertex_Attrib
 	GLsizei		stride;
 	size_t		offset;
 };
-struct VBO_slot
-{
-	GLuint vbo_id = 0;
-	GLuint allocated_size = 0;
-};
-struct VBO_Slot_Flags 
-{
-	uint8_t is_empty		: 1 = true;
-	uint8_t is_binded		: 1 = false;
-	uint8_t is_allocated	: 1 = false;
-	uint8_t is_dynamic		: 1 = false;
-	uint8_t reserved		: 4 = 0;
-};
 //==============================================================================
-/* Handle for lookup objects */
+enum class Object_State
+{
+	Null,			/* Unconstructed or Deconstructed */
+	Constructed,	/* CPU allocated only */
+	Initialising,	/* Internal setup in progress */
+	Ready,			/* Resource instantiated */
+	Rendering,		/* On GPU reading */
+	Deconstructing	/* De-allocation in progress */
+};
 struct Object_Handle
 {
 	GLuint index;
 	GLuint history;
 };
+//==============================================================================
 /* Parent class for independent objects to render */
 class Object
 {
 public:
 	//==============================================================================
-	Object(juce::OpenGLContext& context);
+	Object(juce::OpenGLContext& contex, const std::vector<juce::String>& shader_src);
 	virtual ~Object() {};
-
+public:
+	//==============================================================================
 	/* Functions to be implemented by child */
-	/* Initializes derived-class resources. Always use loadShaderProg() to handle shader compilation and linking. */
-	virtual void	initialise() = 0;
-	virtual void	render(const glm::mat4& global_VP, const glm::vec3& camera_pos) = 0;
-	/* Do child-specific resources cleanup and MUST call Object::cleanup() at end to release base GL handles. */
-	virtual void	cleanup() = 0;
+	/*	Do child-specific resources initialisation, you can ignore it. 
+		However, you MUST complement Object::child_Initialise() */
+	void			baseInitialise();
+	/*	To be called in Renderer::renderOpenGL(), you can ignore it. 
+		However, you MUST complement Object::childRender() */
+	void			baseRender(const glm::mat4& global_VP, const glm::vec3& camera_pos);
+	/*	Do child-specific resources cleanup, you can ignore it.
+		However, you MUST complement Object::childCleanup() */
+	void			baseCleanup();
+public:
+	//==============================================================================
+	Object_State	getCurrentState()	const;
+	Object_Handle	getHandle()			const;
+	GLuint			getRenderProgID()	const;
+	GLuint			getComputeProgID()	const;
+	GLuint			getVAOID()			const;
+	GLuint			getVBOID()			const;
+	size_t			getAllocatedSize()	const;
+	juce::OpenGLContext& getGLContext() const;
 
-	void			setHandle(const Object_Handle& handle);
-	Object_Handle	getHandle() const;
+	GLuint vao_id = 0;
+	GLuint vbo_id = 0;
+	GLuint ebo_id = 0;
+private:
+	//==============================================================================
+	void			loadShaderProg(const juce::String v_shader_name, const juce::String f_shader_name,
+		const juce::String c_shader_name = "", bool with_compute_shader = false);
+private:
+	//==============================================================================
+	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Object);
+	Object_Handle object_handle;
 
-	GLuint			getRenderProgID() const;
-	GLuint			getComputeProgID() const;
-	GLuint			getVAOID() const;
-	size_t			getAllocatedSize() const;
+	/* OpenGL identifiers */
+	juce::String vert_shader_name, frag_shader_name, compute_shader_name;
+
+	juce::OpenGLContext& gl_context;
+	GLuint render_program_id = 0;
+	GLuint compute_program_id = 0;
+
+	std::unordered_map<juce::String, GLint> render_uniform_locations;
+	std::unordered_map<juce::String, GLint> compute_uniform_locations;
+
+	std::atomic<Object_State> current_state = Object_State::Null;
+protected:
+	//==============================================================================
+	/* Child implementations that MUST to be completed */
+	virtual void	childInitialise() = 0;
+	virtual void	childRender(const glm::mat4& global_VP, const glm::vec3& camera_pos) = 0;
+	virtual void	childCleanup() = 0;
 protected:
 	/* OpenGL initialise auxilarities */
 	/* TODO: this function should be implemented later after file output reconstructing */
@@ -64,35 +97,6 @@ protected:
 	GLuint      genComputeProgfromFile(const juce::String path) const;
 	GLuint      genRenderProg(const juce::String vsrc, const juce::String fsrc) const;
 	GLuint      genRenderProgfromFile(const juce::String vpath, const juce::String fpath) const;
-	/* Always call this function to load shader for child */
-	void        loadShaderProg(const juce::String v_shader_name, const juce::String f_shader_name,
-		const juce::String c_shader_name = "", bool with_compute_shader = false);
-
-	void		genAndbindVAO();
-	void		genAndbindVBO(GLuint target_slot, bool is_dynamic);
-	void		setVBOSlotState(GLuint target_slot, const uint8_t mask, bool set);
-	void		allocateVBO(GLuint target_slot, size_t size);
-	void		updateVBO(GLuint target_slot, const void* data_ptr, size_t size);
-	void		genAndbindEBO();
-	void		setObjectVertAttrib(GLuint target_slot, const std::vector<GL_Vertex_Attrib> layout);
 	GLint		getUniformLoc(const juce::String& uniform_name, bool in_compute_shader = false);
-private:
-	//==============================================================================
-	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Object);
-	Object_Handle object_handle;
-
-	/* OpenGL identifiers */
-	juce::OpenGLContext& gl_context;
-	GLuint render_program_id = 0;
-	GLuint compute_program_id = 0;
-
-	GLuint vao_id = 0;
-	GLuint ebo_id = 0;
-
-	std::vector<VBO_slot> vbo_slots;
-	std::vector<VBO_Slot_Flags> access_table;
-
-	std::unordered_map<juce::String, GLint> render_uniform_locations;
-	std::unordered_map<juce::String, GLint> compute_uniform_locations;
 };
 //==============================================================================

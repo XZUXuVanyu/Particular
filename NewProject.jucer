@@ -23,12 +23,18 @@
           <FILE id="i2AVmw" name="Mesh.h" compile="0" resource="0" file="Source/Graphic/Objects/Mesh.h"/>
           <FILE id="qfZuiZ" name="Sphere.cpp" compile="1" resource="0" file="Source/Graphic/Objects/Sphere.cpp"/>
           <FILE id="gNY597" name="Sphere.h" compile="0" resource="0" file="Source/Graphic/Objects/Sphere.h"/>
+          <FILE id="mFMLyF" name="Triangle.cpp" compile="1" resource="0" file="Source/Graphic/Objects/Triangle.cpp"/>
+          <FILE id="DZyNVu" name="Triangle.h" compile="0" resource="0" file="Source/Graphic/Objects/Triangle.h"/>
         </GROUP>
         <FILE id="dMVsNh" name="Renderer.cpp" compile="1" resource="0" file="Source/Graphic/Renderer.cpp"/>
         <FILE id="RAN75e" name="Renderer.h" compile="0" resource="0" file="Source/Graphic/Renderer.h"/>
         <GROUP id="{0E9E52F7-1B17-1C28-DCB5-CBE17CF9337A}" name="Shaders">
           <FILE id="KtA4th" name="mesh.frag" compile="0" resource="1" file="Source/Graphic/Shaders/mesh.frag"/>
           <FILE id="dajRLW" name="mesh.vert" compile="0" resource="1" file="Source/Graphic/Shaders/mesh.vert"/>
+          <FILE id="v3ghih" name="sphere.frag" compile="0" resource="1" file="Source/Graphic/Shaders/sphere.frag"/>
+          <FILE id="tobuur" name="sphere.vert" compile="0" resource="1" file="Source/Graphic/Shaders/sphere.vert"/>
+          <FILE id="Yl1YQq" name="triangle.frag" compile="0" resource="1" file="Source/Graphic/Shaders/triangle.frag"/>
+          <FILE id="h2gq8t" name="triangle.vert" compile="0" resource="1" file="Source/Graphic/Shaders/triangle.vert"/>
         </GROUP>
         <FILE id="lWfJSX" name="Camera.cpp" compile="1" resource="0" file="Source/Graphic/Camera.cpp"/>
         <FILE id="AJhun2" name="Camera.h" compile="0" resource="0" file="Source/Graphic/Camera.h"/>
