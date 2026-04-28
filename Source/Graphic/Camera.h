@@ -17,11 +17,11 @@ public:
 
 	void setViewDist(GLfloat near, GLfloat far);
 
-	glm::mat4 getGlobalVP();
-	glm::vec3 getCameraPos();
-	juce::Point<GLint> getMousePos();
-	juce::Point<GLfloat> getMouseNDCPos();
-	juce::Rectangle<GLint> getWindowSize();
+	glm::mat4 getGlobalVP() const;
+	glm::vec3 getCameraPos() const;
+	juce::Point<GLint> getMousePos() const;
+	juce::Point<GLfloat> getMouseNDCPos() const;
+	juce::Rectangle<GLint> getWindowSize() const;
 
 private:
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Camera);

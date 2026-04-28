@@ -1,17 +1,24 @@
 //==============================================================================
+#include <atomic>
 #include "Object.h"
 #include "../Utilities.h"
+//==============================================================================
+using namespace Crystal;
 //==============================================================================
 Object::Object(juce::OpenGLContext& context, const std::vector<juce::String>& shader_src)
 	: gl_context(context), vert_shader_name(shader_src[0]), frag_shader_name(shader_src[1]), compute_shader_name(shader_src[2])
 {
 	CRYSTAL_CHECK(shader_src.size() != 3, "shader_src MUST contain 3 names");
-	current_state.store(Object_State::Constructed);
+	setState(Entity_Constructed);
+}
+Crystal::Object::~Object()
+{
+	baseCleanup();
 }
 void Object::baseInitialise()
 {
-	CRYSTAL_CHECK(current_state.load() != Object_State::Constructed, "Failed to construct Object");
-	current_state.store(Object_State::Initialising);
+	CRYSTAL_CHECK(getState() != Entity_Constructed, "Bad construction or wrong initialising logic");
+	setState(Entity_Initialising);
 	if (compute_shader_name.isNotEmpty())
 	{
 		auto c_file = getShaderFile(compute_shader_name);
@@ -25,13 +32,13 @@ void Object::baseInitialise()
 	CRYSTAL_CHECK(render_program_id == 0, "Failed to load program: " + vert_shader_name + " / " + frag_shader_name);
 
 	childInitialise();
-	current_state.store(Object_State::Ready);
+	setState(Entity_Initialised);
 }
+/* TODO: add splited state change */
 void Object::baseRender(const glm::mat4& global_VP, const glm::vec3& camera_pos)
 {
-	CRYSTAL_CHECK(current_state.load() != Object_State::Ready,
-		"Object::baseRender() can ONLY be called with Object_State::Ready");
-	current_state.store(Object_State::Rendering);
+	CRYSTAL_CHECK(getState() != Entity_Initialised, "Object::baseRender() can ONLY be called when Entity_Initialised");
+	setState(Entity_OnProcessing);
 	auto& glfunc = gl_context.extensions;
 	glfunc.glUseProgram(render_program_id);
 	glfunc.glBindVertexArray(vao_id);
@@ -40,13 +47,14 @@ void Object::baseRender(const glm::mat4& global_VP, const glm::vec3& camera_pos)
 
 	glfunc.glBindVertexArray(0);
 	glfunc.glUseProgram(0);
-	current_state.store(Object_State::Ready);
+	setState(Entity_Initialised);
 }
 void Object::baseCleanup()
 {
-	CRYSTAL_CHECK(current_state.load() != Object_State::Ready,
-		"Object::baseCleanup() can ONLY be called with Object_State::Ready");
-	current_state.store(Object_State::Deconstructing);
+	if (getState() < Entity_Constructed) return;
+	CRYSTAL_CHECK(!(getState() >= Entity_Constructed), "Object is in an invalid state for cleanup", );
+	setState(Entity_Deconstructing);
+
 	childCleanup();
 
 	auto& glfunc = gl_context.extensions;
@@ -55,53 +63,44 @@ void Object::baseCleanup()
 	if (vao_id) glfunc.glDeleteVertexArrays(1, &vao_id);
 	if (ebo_id) glfunc.glDeleteBuffers(1, &ebo_id);
 	if (vbo_id) glfunc.glDeleteBuffers(1, &vbo_id);
-	current_state.store(Object_State::Null);
-}
-Object_State Object::getCurrentState() const
-{
-	return current_state.load();
+
+	setState(Entity_Deconstructed);
 }
 Object_Handle Object::getHandle() const
 {
-	Object_State state = current_state.load();
-	CRYSTAL_CHECK(state != Object_State::Ready && state != Object_State::Rendering,
-		"Object::getHandle() can ONLY be called with Object_State::Ready", Object_Handle());
+	CRYSTAL_CHECK(!(getState() >= Entity_Initialised),
+		"Object::getHandle() can ONLY be called  after Entity_Initialised", Object_Handle());
 	return object_handle;
 }
 GLuint Object::getRenderProgID() const
 {
-	Object_State state = current_state.load();
-	CRYSTAL_CHECK(state != Object_State::Ready && state != Object_State::Rendering,
-		"Object::getRenderProgID() can ONLY be called in Ready or Rendering states", 0);
+	CRYSTAL_CHECK(!(getState() >= Entity_Initialised),
+		"Object::getRenderProgID() can ONLY be called after Entity_Initialised", 0);
 	return render_program_id;
 }
 GLuint Object::getComputeProgID() const
 {
-	Object_State state = current_state.load();
-	CRYSTAL_CHECK(state != Object_State::Ready && state != Object_State::Rendering,
-		"Object::getComputeProgID() can ONLY be called in Ready or Rendering states", 0);
+	CRYSTAL_CHECK(!(getState() >= Entity_Initialised),
+		"Object::getComputeProgID() can ONLY be called after Entity_Initialised", 0);
 	return compute_program_id;
 }
 GLuint Object::getVAOID() const
 {
-	Object_State state = current_state.load();
-	CRYSTAL_CHECK(state != Object_State::Ready && state != Object_State::Rendering,
-		"Object::getVAOID() can ONLY be called in Ready or Rendering states", 0);
+	CRYSTAL_CHECK(!(getState() >= Entity_Initialised),
+		"Object::getVAOID() can ONLY be called after Entity_Initialised", 0);
 	return vao_id;
 }
 GLuint Object::getVBOID() const
 {
-	Object_State state = current_state.load();
-	CRYSTAL_CHECK(state != Object_State::Ready && state != Object_State::Rendering,
-		"Object::getVAOID() can ONLY be called in Ready or Rendering states", 0);
+	CRYSTAL_CHECK(!(getState() >= Entity_Initialised),
+		"Object::getVBOID() can ONLY be called after Entity_Initialised", 0);
 	return vbo_id;
 }
 /* TODO: add this implementaion */
 size_t Object::getAllocatedSize() const
 {
-	Object_State state = current_state.load();
-	CRYSTAL_CHECK(state != Object_State::Ready && state != Object_State::Rendering,
-		"Object::getAllocatedSize() can ONLY be called in Ready or Rendering states", 0);
+	CRYSTAL_CHECK(!(getState() >= Entity_Initialised),
+		"Object::getAllocatedSize() can ONLY be called after Entity_Initialised", 0);
 	size_t total_size = 0;
 	return total_size;
 }
@@ -109,11 +108,11 @@ juce::OpenGLContext& Object::getGLContext() const
 {
 	return gl_context;
 }
+/* TODO: weak file system adaptive */
 juce::File Object::getShaderFile(const juce::String& file_name) const
 {
-	CRYSTAL_CHECK(current_state.load() != Object_State::Initialising,
-		"Object::getShaderFile() can ONLY be called during Initialising state", juce::File());
-
+	CRYSTAL_CHECK(getState() != Entity_Initialising, 
+		"Object::getShaderFile() can ONLY be called when Entity_Initialising", juce::File());
 	auto file = juce::File::getSpecialLocation(juce::File::currentExecutableFile);
 	for (int i = 0; i < 6; ++i)
 		file = file.getParentDirectory();
@@ -126,15 +125,14 @@ juce::File Object::getShaderFile(const juce::String& file_name) const
 }
 GLint Object::getUniformLoc(const juce::String& uniform_name, bool in_compute_shader)
 {
-	Object_State state = current_state.load();
-	CRYSTAL_CHECK(state != Object_State::Initialising && state != Object_State::Ready && state != Object_State::Rendering,
-		"Object::getUniformLoc() can ONLY be called during Initialising, Ready, or Rendering states", -1);
+	CRYSTAL_CHECK(!(getState() >= Entity_Initialised),
+		"Object::getUniformLoc() can ONLY be called after Entity_Initialised", -1);
 	auto& glfunc = gl_context.extensions;
 	GLint	location = 0;
 	GLuint	target_prog = in_compute_shader ? compute_program_id : render_program_id;
 	auto& target_cache = in_compute_shader ? compute_uniform_locations : render_uniform_locations;
 
-	CRYSTAL_CHECK(target_prog == 0, "[Warning] Unable to locate uniform \"" + uniform_name + "\"", -1);
+	CRYSTAL_CHECK(target_prog == 0, "Unable to locate uniform \"" + uniform_name + "\"", -1);
 
 	auto it = target_cache.find(uniform_name);
 	if (it != target_cache.end()) return it->second;
@@ -146,14 +144,9 @@ GLint Object::getUniformLoc(const juce::String& uniform_name, bool in_compute_sh
 }
 GLuint Object::genComputeProg(const juce::String src) const
 {
-	CRYSTAL_CHECK(current_state.load() != Object_State::Initialising,
-		"Object::genComputeProg() can ONLY be called during Initialising state", 0);
-	if (src.isEmpty())
-	{
-		juce::Logger::writeToLog("[ERROR] Source code could not be empty");
-		jassertfalse;
-		return 0;
-	}
+	CRYSTAL_CHECK(getState() != Entity_Initialising,
+		"Object::genComputeProg() can ONLY be called when Entity_Initialising", 0);
+	CRYSTAL_CHECK(src.isEmpty(), "Invalid src path", 0);
 
 	auto& glfunc = gl_context.extensions;
 
@@ -190,28 +183,17 @@ GLuint Object::genComputeProg(const juce::String src) const
 }
 GLuint Object::genComputeProgfromFile(const juce::String path) const
 {
-	CRYSTAL_CHECK(current_state.load() != Object_State::Initialising,
-		"Object::genComputeProgfromFile() can ONLY be called during Initialising state", 0);
+	CRYSTAL_CHECK(getState() != Entity_Initialising,
+		"Object::genComputeProgfromFile() can ONLY be called when Entity_Initialising", 0);
 	juce::File shaderFile = path;
-	if (!shaderFile.existsAsFile())
-	{
-		DBG("[ERROR] Compute shader source file path don't exist");
-		jassertfalse;
-		return 0;
-	}
+	CRYSTAL_CHECK(!shaderFile.existsAsFile(), "Compute shader source file path don't exist", 0);
 	return genComputeProg(shaderFile.loadFileAsString());
 }
 GLuint Object::genRenderProg(const juce::String vsrc, const juce::String fsrc) const
 {
-	CRYSTAL_CHECK(current_state.load() != Object_State::Initialising,
-		"Object::genRenderProg() can ONLY be called during Initialising state", 0);
-	if (vsrc.isEmpty() || fsrc.isEmpty())
-	{
-		DBG("[ERROR] Source code could not be empty");
-		jassertfalse;
-		return 0;
-	}
-
+	CRYSTAL_CHECK(getState() != Entity_Initialising,
+		"Object::genRenderProg() can ONLY be called when Entity_Initialising", 0);
+	CRYSTAL_CHECK(vsrc.isEmpty() || fsrc.isEmpty(), "Source code could not be empty", 0);
 	auto& glfunc = gl_context.extensions;
 
 	GLint success = 0;
@@ -265,16 +247,11 @@ GLuint Object::genRenderProg(const juce::String vsrc, const juce::String fsrc) c
 }
 GLuint Object::genRenderProgfromFile(const juce::String vpath, const juce::String fpath) const
 {
-	CRYSTAL_CHECK(current_state.load() != Object_State::Initialising,
-		"Object::genRenderProgfromFile() can ONLY be called during Initialising state", 0);
+	CRYSTAL_CHECK(getState() != Entity_Initialising,
+		"Object::genRenderProgfromFile() can ONLY be called when Entity_Initialising", 0);
 	juce::File vshaderFile = vpath;
 	juce::File fshaderFile = fpath;
-	if (!vshaderFile.existsAsFile() || !fshaderFile.existsAsFile())
-	{
-		juce::Logger::writeToLog("Shader source file path don't exist");
-		jassertfalse;
-		return 0;
-	}
+	CRYSTAL_CHECK(!vshaderFile.existsAsFile() || !fshaderFile.existsAsFile(), "Shader source file path don't exist", 0);
 	return genRenderProg(vshaderFile.loadFileAsString(), fshaderFile.loadFileAsString());
 }
 //==============================================================================

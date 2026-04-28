@@ -51,19 +51,19 @@ void Camera::onWindowResize(const juce::Rectangle<GLint> new_window_size)
 	sensitivity_y = pi / (GLfloat)window_size.getHeight();
 	update_Pmat();
 }
-glm::mat4 Camera::getGlobalVP()
+glm::mat4 Camera::getGlobalVP() const
 {
 	return projection_mat * view_mat;
 }
-glm::vec3 Camera::getCameraPos()
+glm::vec3 Camera::getCameraPos() const
 {
 	return camera_pos;
 }
-juce::Point<GLint> Camera::getMousePos()
-{
+juce::Point<GLint> Camera::getMousePos() const
+{ 
 	return mouse_pos;
 }
-juce::Point<GLfloat> Camera::getMouseNDCPos()
+juce::Point<GLfloat> Camera::getMouseNDCPos() const
 {
 	GLfloat w = (GLfloat)window_size.getWidth();
 	GLfloat h = (GLfloat)window_size.getHeight();
@@ -75,7 +75,7 @@ juce::Point<GLfloat> Camera::getMouseNDCPos()
 
 	return { nx, ny };
 }
-juce::Rectangle<GLint> Camera::getWindowSize()
+juce::Rectangle<GLint> Camera::getWindowSize() const
 {
 	return window_size;
 }

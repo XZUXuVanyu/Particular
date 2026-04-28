@@ -3,7 +3,6 @@
 //==============================================================================
 #pragma once
 #include <JuceHeader.h>
-#include "../Utilities.h"
 #include "Object.h"
 //==============================================================================
 constexpr GLuint RENDER_SLOT_SIZE = 16;
@@ -11,77 +10,76 @@ constexpr GLuint RENDER_SLOT_SIZE = 16;
 using namespace juce::gl;
 //==============================================================================
 class Camera;
-enum class Renderer_State
+namespace Crystal
 {
-	Idle, Preparing, Rendering, Cleaning
-};
-struct Render_Slot
-{
-	std::unique_ptr<Object>		object;
-	std::atomic<GLuint>			history;
-
-	Object_State getObjectState() const
+	struct Render_Slot
 	{
-		if (object == nullptr) return Object_State::Null;
-		return object->getCurrentState();
-	}
-};
-/* Renderer that manage all objects */
-class Renderer : public juce::OpenGLRenderer, public juce::Component, public juce::Timer
-{
-public:
-	//==============================================================================
-	Renderer(juce::OpenGLContext& context);
-	~Renderer() override;
-	/* JUCE OpenGL */
-	void					newOpenGLContextCreated() override;
-	void					renderOpenGL() override;
-	void					openGLContextClosing() override;
+		std::unique_ptr<Object>		object;
+		std::atomic<GLuint>			history;
+	};
+	/* Renderer that manage all objects */
+	class Renderer : public juce::OpenGLRenderer, public juce::Component, public Processor
+	{
+	public:
+		//==============================================================================
+		Renderer(juce::OpenGLContext& context);
+		~Renderer() override;
+		/* JUCE OpenGL */
+		void					newOpenGLContextCreated() override;
+		void					renderOpenGL() override;
+		void					openGLContextClosing() override;
 
-	/* JUCE Component */
-	void					paint(juce::Graphics& g) override;
-	void					resized() override;
+		/* JUCE Component */
+		void					paint(juce::Graphics& g) override;
+		void					resized() override;
+	public:
+		//==============================================================================
+		/* Render Objects */
+		bool					prepare() override;
+		void					processing() override;
+		void					synchronize() override;
+		void					shutdown() override;
 
-	/* JUCE Timer */
-	void					timerCallback() override;
-public:
-	//==============================================================================
-	/* Render Objects */
-	void					registerObject(Object_Handle& handle, std::unique_ptr<Object> object);
-	void					removeObject(const Object_Handle& handle);
-	juce::OpenGLContext&	getglContext();
-private:
-	//==============================================================================
-	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Renderer);
-	juce::OpenGLContext&			gl_context;
-	juce::TextEditor				debug_info;
-	GLdouble						timer, dt;
+		void					registerObject(Object_Handle& handle, std::unique_ptr<Object> object);
+		void					removeObject(Object_Handle& handle);
+		juce::OpenGLContext&	getglContext();
 
-	std::unique_ptr<Camera>			main_camera;
+		Render_Slot&			debug_getRenderSlot(GLuint target_slot)
+		{
+			return render_slots[target_slot];
+		}
+	private:
+		//==============================================================================
+		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Renderer);
+		juce::OpenGLContext&			gl_context;
+		juce::TextEditor				debug_info;
+		GLdouble						timer, dt;
 
-	/* TODO: add sorting logic based on it */
-	std::vector<Render_Slot>		render_slots;
+		std::unique_ptr<Camera>			main_camera;
 
-	std::queue<std::pair<Object_Handle, std::unique_ptr<Object>>>
-									register_queue;
-	std::queue<Object_Handle>		remove_queue;
-	
-	juce::CriticalSection			request_lock;
-private:
-	//==============================================================================
-	bool renderPrepare();
-	void renderScene();
-	void renderOverlay();
-	void renderCleanup();
+		/* TODO: add sorting logic based on it */
+		std::vector<Render_Slot>		render_slots;
 
-	Renderer_State current_state;
-private:
-	//==============================================================================
-	void processRequests();
-	void updateTime();
+		std::queue<std::pair<Object_Handle, std::unique_ptr<Object>>>
+			register_queue;
+		std::queue<Object_Handle>		remove_queue;
 
-	bool verifyObjectHandle(GLuint target_slot, const Object_Handle& handle) const;
-	/* TODO: add VRAM control */
-	size_t getTotalAllocatedSize() const;
-};
+		juce::CriticalSection			request_lock;
+	private:
+		//==============================================================================
+		bool renderPrepare();
+		void renderScene();
+		void renderOverlay();
+		void renderCleanup();
+
+	private:
+		//==============================================================================
+		void processRequests();
+		void updateTime();
+
+		bool verifyObjectHandle(GLuint target_slot, const Object_Handle& handle) const;
+		/* TODO: add VRAM control */
+		size_t getTotalAllocatedSize() const;
+	};
+}
 //==============================================================================

@@ -1,20 +1,20 @@
 #pragma once
 #if DEBUG
 /* If condition is true, tirgger breakpoint or return */
-#define CRYSTAL_CHECK(condition, message, return_val) \
+#define CRYSTAL_CHECK(condition, message, ...) \
         do { \
             if (condition) { \
                 DBG("[CRYSTAL-ERROR]: " << message); \
                 jassertfalse; \
-                return return_val; \
+                return __VA_ARGS__; \
             } \
         } while (0)
 #else
-#define CRYSTAL_CHECK_RETURN(condition, message) \
+#define CRYSTAL_CHECK(condition, message, ...) \
         do { \
             if (condition) { \
-                juce::Logger::writeToLog(juce::String("[CRYSTAL-ERROR]: ") + message); \
-                return return_val; \
+                juce::Logger::writeToLog("[CRYSTAL-ERROR]: " << message); \
+                return __VA_ARGS__; \
             } \
         } while (0)
 #endif

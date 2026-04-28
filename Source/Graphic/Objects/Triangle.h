@@ -2,7 +2,7 @@
 #pragma once
 #include "../Object.h"
 //==============================================================================
-inline constexpr GL_Vertex_Attrib triangle_pos = 
+inline constexpr Crystal::OpenGL::Vertex_Attrib triangle_pos = 
 {
 	.location = 0,
 	.size = 3,
@@ -12,10 +12,10 @@ inline constexpr GL_Vertex_Attrib triangle_pos =
 	.offset = 0
 };
 
-class Triangle : public Object
+class Triangle : public Crystal::Object
 {
 public:
-	using Object::Object;
+	using	Object::Object;
 	void	childInitialise() override;
 	void	childRender(const glm::mat4& global_VP, const glm::vec3& camera_pos) override;
 	void	childCleanup() override;

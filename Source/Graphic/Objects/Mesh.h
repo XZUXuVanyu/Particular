@@ -2,7 +2,7 @@
 #pragma once
 #include "../Object.h"
 //==============================================================================
-class Mesh : public Object
+class Mesh : public Crystal::Object
 {
 public:
 	using Object::Object;

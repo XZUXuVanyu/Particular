@@ -4,7 +4,8 @@
 #include <glm-master/glm/gtc/type_ptr.hpp>
 //==============================================================================
 /* UVSphere vertex attribs */
-inline constexpr GL_Vertex_Attrib pos = {
+inline constexpr Crystal::OpenGL::Vertex_Attrib pos = 
+{
 		.location = 0,
 		.size = 3,
 		.type = GL_FLOAT,
@@ -12,7 +13,7 @@ inline constexpr GL_Vertex_Attrib pos = {
 		.stride = sizeof(glm::vec3),
 		.offset = 0 };
 /* A sphere */
-class UVSphere : public Object
+class UVSphere : public Crystal::Object
 {
 public:
 	using	Object::Object;
@@ -23,7 +24,7 @@ public:
 	void genUVSphere();
 
 private:
-	GLuint subdivision = 5;
+	GLuint subdivision = 32;
 
 	std::vector<glm::vec3>	vertices;
 	std::vector<glm::uvec3>	indices;

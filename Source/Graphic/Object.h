@@ -1,102 +1,86 @@
 //==============================================================================
 #pragma once
-#include <JuceHeader.h>
+#include "../Foundation.h"
 #include <glm-master/glm/glm.hpp>
 //==============================================================================
 using namespace juce::gl;
 //==============================================================================
-struct GL_Vertex_Attrib
+namespace Crystal
 {
-	GLuint		location;
-	GLint		size;
-	GLenum		type;
-	GLboolean	normalized;
-	GLsizei		stride;
-	size_t		offset;
-};
-//==============================================================================
-enum class Object_State
-{
-	Null,			/* Unconstructed or Deconstructed */
-	Constructed,	/* CPU allocated only */
-	Initialising,	/* Internal setup in progress */
-	Ready,			/* Resource instantiated */
-	Rendering,		/* On GPU reading */
-	Deconstructing	/* De-allocation in progress */
-};
-struct Object_Handle
-{
-	GLuint index;
-	GLuint history;
-};
-//==============================================================================
-/* Parent class for independent objects to render */
-class Object
-{
-public:
 	//==============================================================================
-	Object(juce::OpenGLContext& contex, const std::vector<juce::String>& shader_src);
-	virtual ~Object() {};
-public:
+	struct Object_Handle
+	{
+		GLuint index;
+		GLuint history;
+	};
 	//==============================================================================
-	/* Functions to be implemented by child */
-	/*	Do child-specific resources initialisation, you can ignore it. 
-		However, you MUST complement Object::child_Initialise() */
-	void			baseInitialise();
-	/*	To be called in Renderer::renderOpenGL(), you can ignore it. 
-		However, you MUST complement Object::childRender() */
-	void			baseRender(const glm::mat4& global_VP, const glm::vec3& camera_pos);
-	/*	Do child-specific resources cleanup, you can ignore it.
-		However, you MUST complement Object::childCleanup() */
-	void			baseCleanup();
-public:
-	//==============================================================================
-	Object_State	getCurrentState()	const;
-	Object_Handle	getHandle()			const;
-	GLuint			getRenderProgID()	const;
-	GLuint			getComputeProgID()	const;
-	GLuint			getVAOID()			const;
-	GLuint			getVBOID()			const;
-	size_t			getAllocatedSize()	const;
-	juce::OpenGLContext& getGLContext() const;
+	/* Parent class for independent objects to render */
+	class Object : public Entity
+	{
+	public:
+		//==============================================================================
+		Object(juce::OpenGLContext& contex, const std::vector<juce::String>& shader_src);
+		virtual ~Object();
+	public:
+		//==============================================================================
+		/* Functions to be implemented by child */
+		/*	Do child-specific resources initialisation, you can ignore it.
+			However, you MUST complement Object::child_Initialise() */
+		void			baseInitialise();
+		/*	To be called in Renderer::renderOpenGL(), you can ignore it.
+			However, you MUST complement Object::childRender() */
+		void			baseRender(const glm::mat4& global_VP, const glm::vec3& camera_pos);
+		/*	Do child-specific resources cleanup, you can ignore it.
+			However, you MUST complement Object::childCleanup() */
+		void			baseCleanup();
+	public:
+		//==============================================================================
+		Object_Handle	getHandle()			const;
+		GLuint			getRenderProgID()	const;
+		GLuint			getComputeProgID()	const;
+		GLuint			getVAOID()			const;
+		GLuint			getVBOID()			const;
+		size_t			getAllocatedSize()	const;
+		juce::OpenGLContext& getGLContext() const;
 
-	GLuint vao_id = 0;
-	GLuint vbo_id = 0;
-	GLuint ebo_id = 0;
-private:
+		GLuint vao_id = 0;
+		GLuint vbo_id = 0;
+		GLuint ebo_id = 0;
+	private:
+		//==============================================================================
+		void			loadShaderProg(const juce::String v_shader_name, const juce::String f_shader_name,
+			const juce::String c_shader_name = "", bool with_compute_shader = false);
+	private:
+		//==============================================================================
+		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Object);
+		Object_Handle object_handle;
+
+		/* OpenGL identifiers */
+		juce::String vert_shader_name, frag_shader_name, compute_shader_name;
+
+		juce::OpenGLContext& gl_context;
+		GLuint render_program_id = 0;
+		GLuint compute_program_id = 0;
+
+		std::unordered_map<juce::String, GLint> render_uniform_locations;
+		std::unordered_map<juce::String, GLint> compute_uniform_locations;
+	protected:
+		//==============================================================================
+		/* Child implementations that MUST to be completed */
+		virtual void	childInitialise() = 0;
+		virtual void	childRender(const glm::mat4& global_VP, const glm::vec3& camera_pos) = 0;
+		virtual void	childCleanup() {};
+	protected:
+		/* OpenGL initialise auxilarities */
+		/* TODO: this function should be implemented later after file output reconstructing */
+		juce::File  getShaderFile(const juce::String& file_name) const;
+		GLuint      genComputeProg(const juce::String src) const;
+		GLuint      genComputeProgfromFile(const juce::String path) const;
+		GLuint      genRenderProg(const juce::String vsrc, const juce::String fsrc) const;
+		GLuint      genRenderProgfromFile(const juce::String vpath, const juce::String fpath) const;
+		GLint		getUniformLoc(const juce::String& uniform_name, bool in_compute_shader = false);
+		void		setVertexAttrib();
+		void		fillInBufferData();
+	};
 	//==============================================================================
-	void			loadShaderProg(const juce::String v_shader_name, const juce::String f_shader_name,
-		const juce::String c_shader_name = "", bool with_compute_shader = false);
-private:
-	//==============================================================================
-	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Object);
-	Object_Handle object_handle;
-
-	/* OpenGL identifiers */
-	juce::String vert_shader_name, frag_shader_name, compute_shader_name;
-
-	juce::OpenGLContext& gl_context;
-	GLuint render_program_id = 0;
-	GLuint compute_program_id = 0;
-
-	std::unordered_map<juce::String, GLint> render_uniform_locations;
-	std::unordered_map<juce::String, GLint> compute_uniform_locations;
-
-	std::atomic<Object_State> current_state = Object_State::Null;
-protected:
-	//==============================================================================
-	/* Child implementations that MUST to be completed */
-	virtual void	childInitialise() = 0;
-	virtual void	childRender(const glm::mat4& global_VP, const glm::vec3& camera_pos) = 0;
-	virtual void	childCleanup() = 0;
-protected:
-	/* OpenGL initialise auxilarities */
-	/* TODO: this function should be implemented later after file output reconstructing */
-	juce::File  getShaderFile(const juce::String& file_name) const;
-	GLuint      genComputeProg(const juce::String src) const;
-	GLuint      genComputeProgfromFile(const juce::String path) const;
-	GLuint      genRenderProg(const juce::String vsrc, const juce::String fsrc) const;
-	GLuint      genRenderProgfromFile(const juce::String vpath, const juce::String fpath) const;
-	GLint		getUniformLoc(const juce::String& uniform_name, bool in_compute_shader = false);
-};
-//==============================================================================
+}
